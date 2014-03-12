@@ -3,10 +3,11 @@ use Test::More;
 use Test::Deep;
 use Test::RedisServer;
 use Redis;
+#use t::Util;
 
 BEGIN { use_ok 'FollowerLite' }
 
-my $bamboo;
+my $follower_lite;
 
 my $user1 = {
     id           => 1,
@@ -21,36 +22,39 @@ my $user3 = {
     follow_users => [1,2,5,7]
 };
 
-my $redis_server = Test::RedisServer->new();
-my $socket = $redis_server->connect_info;
+my $socket = $ENV{REDIS_SOCKET_POOL};
 
 subtest "setup redis" => sub {
-    $bamboo = FollowerLite->new({ redis => Redis->new(sock => $socket ) });
-    isa_ok $bamboo->redis, 'Redis';
+    $follower_lite = FollowerLite->new({ redis => Redis->new(sock => $socket ) });
+    isa_ok $follower_lite->redis, 'Redis';
 };
 
 subtest "store follow user" => sub {
-    is $bamboo->add_user($user1), scalar @{$user1->{follow_users}};
-    is $bamboo->add_user($user2), scalar @{$user2->{follow_users}};
-    is $bamboo->add_user($user3), scalar @{$user3->{follow_users}};
+    is $follower_lite->add_user($user1), scalar @{$user1->{follow_users}};
+    is $follower_lite->add_user($user2), scalar @{$user2->{follow_users}};
+    is $follower_lite->add_user($user3), scalar @{$user3->{follow_users}};
 };
 
 subtest "recommend user" => sub {
-    $bamboo = FollowerLite->new({
+    $follower_lite = FollowerLite->new({
         redis => Redis->new(sock => $socket ),
         user_id => $user3->{id},
     });
-    my $user_ids = $bamboo->recommend_user_ids();
+    my $user_ids = $follower_lite->recommend_user_ids();
     cmp_deeply $user_ids, [4, 6];
 };
 
-subtest "user friend" => sub {
-    $bamboo = FollowerLite->new({
+subtest "friend follow follower " => sub {
+    $follower_lite = FollowerLite->new({
         redis => Redis->new(sock => $socket ),
         user_id => $user3->{id},
     });
-    ok !$bamboo->is_friend($user1->{id});
-    ok $bamboo->is_friend($user2->{id});
+    ok !$follower_lite->is_friend($user1->{id});
+    ok $follower_lite->is_friend($user2->{id});
+
+    ok $follower_lite->is_follow($user1->{id});
+    ok !$follower_lite->is_follower($user1->{id});
+    ok $follower_lite->is_follower($user2->{id});
 };
 
 

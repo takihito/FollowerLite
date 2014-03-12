@@ -12,7 +12,7 @@ has sinter_target_count => (
     default => sub {2}
 );
 
-has recommend_min_result => (
+has recommend_min_number => (
     is      => 'rw',
     isa     => 'Str',
     default => sub {1}
@@ -56,6 +56,8 @@ has redis => (
     required => 1
 );
 
+no Mouse;
+
 sub add_user {
     my ($self, $user) = @_;
     my $key  = $user->{id};
@@ -74,7 +76,7 @@ sub recommend_user_ids {
        next if grep(/^$target_key$/, @$checked_ids);
        if ( $self->_sinter_userids(@target_ids) ) {
            my $recommend_user_ids = $self->_remove_added_user_ids();
-           return $recommend_user_ids if scalar @$recommend_user_ids >= $self->recommend_min_result;
+           return $recommend_user_ids if scalar @$recommend_user_ids >= $self->recommend_min_number;
        }
        push @$checked_ids, join ":",@target_ids;
    }
@@ -99,7 +101,16 @@ sub is_friend {
     }
 }
 
-no Mouse;
+sub is_follow {
+    my ($self, $target_user_id) = @_;
+    return $self->redis->sismember($self->user_id, $target_user_id) ? 1 : 0;
+}
+
+sub is_follower {
+    my ($self, $target_user_id) = @_;
+    return $self->redis->sismember($target_user_id, $self->user_id) ? 1 : 0;
+}
+
 
 1;
 __END__

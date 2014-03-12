@@ -1,0 +1,5 @@
+--timer
+--color
+--merge
+-Pt::lib::App::Prove::Plugin::Pool
+
