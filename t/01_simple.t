@@ -4,6 +4,7 @@ use Test::Deep;
 use Test::RedisServer;
 use Redis;
 #use t::Util;
+use t::StoreTestData;
 
 BEGIN { use_ok 'FollowerLite' }
 
@@ -25,7 +26,9 @@ my $user3 = {
 my $socket = $ENV{REDIS_SOCKET_POOL};
 
 subtest "setup redis" => sub {
-    $follower_lite = FollowerLite->new({ redis => Redis->new(sock => $socket ) });
+    my $redis  = Redis->new(sock => $socket );
+    ok $redis->get('store_test_data');
+    $follower_lite = FollowerLite->new({ redis => $redis });
     isa_ok $follower_lite->redis, 'Redis';
 };
 

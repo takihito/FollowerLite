@@ -4,7 +4,6 @@ use strict;
 use warnings;
 use Test::RedisServer;
 
-
 sub load {
     my ( $class, $prove ) = @_;
 
