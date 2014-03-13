@@ -6,17 +6,7 @@ use Mouse;
 use List::Util;
 use Redis;
 
-has sinter_target_count => (
-    is      => 'rw',
-    isa     => 'Str',
-    default => sub {2}
-);
-
-has recommend_min_number => (
-    is      => 'rw',
-    isa     => 'Str',
-    default => sub {1}
-);
+use FollowerLite::User;
 
 has redis_server => (
     is      => 'rw',
@@ -31,15 +21,7 @@ has name => (
 has user_id => (
     is      => 'rw',
     isa     => 'Int',
-);
-
-has tmp_user_key => (
-    is      => 'rw',
-    isa     => 'Str',
-    default => sub {
-        my $self = shift;
-        return sprintf "tmp_user_key:%s",$self->user_id;
-    }
+    default => sub {0}
 );
 
 has redis => (
@@ -58,57 +40,12 @@ has redis => (
 
 no Mouse;
 
-sub add_user {
-    my ($self, $user) = @_;
-    my $key  = $user->{id};
-    my $list = $user->{follow_users};
-    $self->redis->sadd($key, $_) foreach(@$list);
-    return $self->redis->scard($key);
-}
-
-sub recommend_user_ids {
-    my ($self, $user_id) = @_;
-    my $list = $self->redis->sinter($self->user_id);
-    my $checked_ids = [];
-    for (1..16) {
-       my @target_ids = (List::Util::shuffle @$list)[0..$self->sinter_target_count-1];
-       my $target_key = join ":", @target_ids;
-       next if grep(/^$target_key$/, @$checked_ids);
-       if ( $self->_sinter_userids(@target_ids) ) {
-           my $recommend_user_ids = $self->_remove_added_user_ids();
-           return $recommend_user_ids if scalar @$recommend_user_ids >= $self->recommend_min_number;
-       }
-       push @$checked_ids, join ":",@target_ids;
-   }
-   return [];
-}
-
-sub _sinter_userids {
-    my ($self, @user_ids) = @_;
-   return $self->redis->sinterstore( $self->tmp_user_key, @user_ids);
-}
-
-sub _remove_added_user_ids {
-    my ($self, $sinter_user_ids) = @_;
-    my $user_ids = $self->redis->sdiff( $self->tmp_user_key, $self->user_id);
-    return $user_ids;
-}
-
-sub is_friend {
-    my ($self, $target_user_id) = @_;
-    if ( $self->redis->sismember($self->user_id, $target_user_id) ) {
-        return $self->redis->sismember($target_user_id, $self->user_id);
-    }
-}
-
-sub is_follow {
-    my ($self, $target_user_id) = @_;
-    return $self->redis->sismember($self->user_id, $target_user_id) ? 1 : 0;
-}
-
-sub is_follower {
-    my ($self, $target_user_id) = @_;
-    return $self->redis->sismember($target_user_id, $self->user_id) ? 1 : 0;
+sub load_user {
+    my ($self, $user_id ) = @_;
+    return FollowerLite::User->new({
+        redis   => $self->redis,
+        user_id => $user_id,
+    });
 }
 
 
