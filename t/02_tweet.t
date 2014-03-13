@@ -33,6 +33,10 @@ subtest "setup redis" => sub {
 
 subtest "tweet and pub" => sub {
     my $socket = $ENV{REDIS_SOCKET_POOL};
-}
+    my $redis  = Redis->new(sock => $socket );
+    ok $redis->get('store_test_data');
+    my $follower_lite = FollowerLite->new({ redis => $redis });
+    isa_ok $follower_lite->redis, 'Redis';
+};
 
 done_testing;
