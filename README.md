@@ -1,8 +1,7 @@
 
 #SYNOPSIS
 
-#SYNOPSIS
-
+Follow & Follower Simple Module
     
 
 #DOCUMENTATION
